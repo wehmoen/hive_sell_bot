@@ -40,8 +40,8 @@ function formatSellQty(quantity) {
     const HIVEBalanceBinance = binanceAccount.balances.find(x => x.asset === "HIVE");
     log(`Loading HIVE Balance from Binance: ${HIVEBalanceBinance.free} HIVE`)
 
-    if (parseFloat(HIVEBalanceBinance.free) < 20) {
-        log("Can not sell less than 20 HIVE at Binance!")
+    if (parseFloat(HIVEBalanceBinance.free) < process.env.VAR_EXCHANGE_MIN_SELL_HIVE) {
+        log(`Can not sell less than ${process.env.VAR_EXCHANGE_MIN_SELL_HIVE} HIVE at Binance!`)
         return;
     }
 
@@ -53,7 +53,7 @@ function formatSellQty(quantity) {
     })
 
     log("HIVE SOLD!");
-    log(`Sold ${order.executedQty} for ${order.cummulativeQuoteQty} ${process.env.VAR_EXCHANGE_OUTPUT_CURRENCY}`);
+    log(`Sold ${order.executedQty} HIVE for ${order.cummulativeQuoteQty} ${process.env.VAR_EXCHANGE_OUTPUT_CURRENCY}`);
     log(`Fills: \n${JSON.stringify(order.fills, null, 4)}`)
 
 })().catch(e => console.log(e))
