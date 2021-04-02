@@ -70,6 +70,7 @@ function formatAmount(amount, currency = "HIVE") {
         const depositAddress = await binance.depositAddress({asset: "HIVE"})
         if (depositAddress.success === false) {
             log(`Could not retrieve deposit address. Error message returned form Binance: ${depositAddress.msg}`)
+            return;
         }
         log(`Deposit Address: ${depositAddress.address}`)
         log(`Deposit Memo: ${depositAddress.addressTag}`)
