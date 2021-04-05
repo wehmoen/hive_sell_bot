@@ -1,8 +1,8 @@
-require('dotenv').config(); //.env file parser
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '../.env') }); //.env file parser
 
 // NodeJS Modules
 const assert = require("assert");
-const path = require("path");
 const fs = require("fs");
 
 const {binance} = require('../lib')
