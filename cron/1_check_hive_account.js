@@ -28,7 +28,7 @@ function log(line) {
 async function getAccountBalance(account, currency = "HIVE") {
     assert(["HIVE", "HBD"].includes(currency), "Can only get HIVE or HBD balance for an account.");
     const [user] = await HIVE.api.getAccountsAsync([account]);
-    assert(user !== undefined, "The account does not exist! Unable to check balance.")
+    assert(user !== undefined, `The account does not exist! Unable to check balance for ${account}.`)
     if (currency === "HIVE") {
         return parseFloat(user.balance, 10);
     }
