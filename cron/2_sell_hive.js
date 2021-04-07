@@ -23,8 +23,18 @@ function log(line) {
  * @param quantity
  * @returns {string}
  */
-function formatSellQty(quantity) {
-    return quantity.toString().match(/^-?\d+(?:\.\d{0,2})?/)[0]
+function formatSellQty(quantity, decimals) {
+
+    const reg = new RegExp(`^-?\\d+(?:\.\\d{0,${decimals}})?`, "g")
+
+    if (parseInt(decimals) === 0) {
+        if (quantity.indexOf(".") > -1) {
+            return quantity.split(".")[0]
+        }
+        return quantity
+    }
+
+    return reg.exec(quantity)[0]
 }
 
 (async () => {
@@ -37,23 +47,54 @@ function formatSellQty(quantity) {
     const binanceAccount = await binance.account();
     assert(binanceAccount.canTrade, "Your Binance account is marked as \"can not trade\"!")
 
+    const exchangeInfo = await binance.exchangeInfo();
+    log(`Loading exchange informations...`)
+
+    const pairInfo = exchangeInfo.symbols.find(x => x.symbol === `HIVE${process.env.VAR_EXCHANGE_OUTPUT_CURRENCY}`)
+    const pairInfo2 = exchangeInfo.symbols.find(x => x.symbol === `${process.env.VAR_EXCHANGE_OUTPUT_CURRENCY}EUR`)
+
+
     const HIVEBalanceBinance = binanceAccount.balances.find(x => x.asset === "HIVE");
     log(`Loading HIVE Balance from Binance: ${HIVEBalanceBinance.free} HIVE`)
 
-    if (parseFloat(HIVEBalanceBinance.free) < process.env.VAR_EXCHANGE_MIN_SELL_HIVE) {
+    if (parseFloat(HIVEBalanceBinance.free) >= process.env.VAR_EXCHANGE_MIN_SELL_HIVE) {
+
+        if (parseFloat(HIVEBalanceBinance.free) <= parseFloat(pairInfo.filters.find(x => x.filterType === "MIN_NOTIONAL").minNotional)) {
+            log(`Binance does not allow sales for less than ${pairInfo.filters.find(x => x.filterType === "MIN_NOTIONAL").minNotional} HIVE!`)
+        }
+
+        const order = await binance.newOrder({
+            symbol: `HIVE${process.env.VAR_EXCHANGE_OUTPUT_CURRENCY}`,
+            side: "SELL",
+            type: "MARKET",
+            quantity: formatSellQty(HIVEBalanceBinance.free, process.env.VAR_EXCHANGE_OUTPUT_STEP_SIZE)
+        })
+
+        log("HIVE SOLD!");
+        log(`Sold ${order.executedQty} HIVE for ${order.cummulativeQuoteQty} ${process.env.VAR_EXCHANGE_OUTPUT_CURRENCY}`);
+        log(`Fills: \n${JSON.stringify(order.fills, null, 4)}`)
+    } else {
         log(`Can not sell less than ${process.env.VAR_EXCHANGE_MIN_SELL_HIVE} HIVE at Binance!`)
-        return;
     }
 
-    const order = await binance.newOrder({
-        symbol: `HIVE${process.env.VAR_EXCHANGE_OUTPUT_CURRENCY}`,
-        side: "SELL",
-        type: "MARKET",
-        quantity: formatSellQty(HIVEBalanceBinance.free)
-    })
+    if (process.env.VAR_EXCHANGE_OUTPUT_CURRENCY === "BTC" && process.env.VAR_EXCHANGE_SELL_TO_FIAT === "true") {
+        const BTCBalanceBinance = binanceAccount.balances.find(x => x.asset === "BTC");
+        log(`Loading BTC Balance from Binance: ${BTCBalanceBinance.free} BTC`)
 
-    log("HIVE SOLD!");
-    log(`Sold ${order.executedQty} HIVE for ${order.cummulativeQuoteQty} ${process.env.VAR_EXCHANGE_OUTPUT_CURRENCY}`);
-    log(`Fills: \n${JSON.stringify(order.fills, null, 4)}`)
+        if (parseFloat(BTCBalanceBinance.free) <= parseFloat(pairInfo2.filters.find(x => x.filterType === "MIN_NOTIONAL").minNotional)) {
+            log(`Binance does not allow sales for less than ${pairInfo2.filters.find(x => x.filterType === "MIN_NOTIONAL").minNotional} ${process.env.VAR_EXCHANGE_OUTPUT_CURRENCY}!`)
+        }
+
+        const order = await binance.newOrder({
+            symbol: `${process.env.VAR_EXCHANGE_OUTPUT_CURRENCY}EUR`,
+            side: "SELL",
+            type: "MARKET",
+            quantity: formatSellQty(BTCBalanceBinance.free, process.env.VAR_EXCHANGE_OUTPUT_FIAT_STEP_SIZE)
+        })
+
+        log("BTC SOLD!");
+        log(`Sold ${order.executedQty} ${process.env.VAR_EXCHANGE_OUTPUT_CURRENCY} for ${order.cummulativeQuoteQty} EUR`);
+        log(`Fills: \n${JSON.stringify(order.fills, null, 4)}`)
+    }
 
 })().catch(e => console.log(e))
