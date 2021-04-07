@@ -51,8 +51,6 @@ function formatSellQty(quantity, decimals) {
     log(`Loading exchange informations...`)
 
     const pairInfo = exchangeInfo.symbols.find(x => x.symbol === `HIVE${process.env.VAR_EXCHANGE_OUTPUT_CURRENCY}`)
-    const pairInfo2 = exchangeInfo.symbols.find(x => x.symbol === `${process.env.VAR_EXCHANGE_OUTPUT_CURRENCY}EUR`)
-
 
     const HIVEBalanceBinance = binanceAccount.balances.find(x => x.asset === "HIVE");
     log(`Loading HIVE Balance from Binance: ${HIVEBalanceBinance.free} HIVE`)
@@ -80,10 +78,6 @@ function formatSellQty(quantity, decimals) {
     if (process.env.VAR_EXCHANGE_OUTPUT_CURRENCY === "BTC" && process.env.VAR_EXCHANGE_SELL_TO_FIAT === "true") {
         const BTCBalanceBinance = binanceAccount.balances.find(x => x.asset === "BTC");
         log(`Loading BTC Balance from Binance: ${BTCBalanceBinance.free} BTC`)
-
-        if (parseFloat(BTCBalanceBinance.free) <= parseFloat(pairInfo2.filters.find(x => x.filterType === "MIN_NOTIONAL").minNotional)) {
-            log(`Binance does not allow sales for less than ${pairInfo2.filters.find(x => x.filterType === "MIN_NOTIONAL").minNotional} ${process.env.VAR_EXCHANGE_OUTPUT_CURRENCY}!`)
-        }
 
         const order = await binance.newOrder({
             symbol: `${process.env.VAR_EXCHANGE_OUTPUT_CURRENCY}EUR`,
